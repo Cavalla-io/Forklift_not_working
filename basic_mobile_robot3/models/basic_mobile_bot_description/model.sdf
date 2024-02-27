@@ -148,7 +148,7 @@
   <!-- ****************************** LIDAR *****************************    -->
   <link name="lidar_link">    
     <inertial>
-      <pose>0.215 0 0.13 0 0 0</pose>
+      <pose>1.6 0 0.2 0 0 0</pose>
       <inertia>
         <ixx>0.001</ixx>
         <ixy>0.000</ixy>
@@ -161,7 +161,7 @@
     </inertial>
 
     <collision name="lidar_collision">
-      <pose>0.215 0 0.13 0 0 0</pose>
+      <pose>1.6 0 0.2 0 0 0</pose>
       <geometry>
         <cylinder>
           <radius>0.0508</radius>
@@ -171,7 +171,7 @@
     </collision>
 
     <visual name="lidar_visual">
-      <pose>0.215 0 0.13 0 0 0</pose>
+      <pose>1.6 0 0.2 0 0 0</pose>
       <geometry>
         <cylinder>
           <radius>0.0508</radius>
@@ -187,7 +187,7 @@
     </visual>
 
     <sensor name="lidar" type="ray">
-      <pose>0.215 0 2.75 0 0 0</pose>
+      <pose>1.6 0 0.2 0 0 0</pose>
       <always_on>true</always_on>
       <visualize>true</visualize>
       <update_rate>5</update_rate>
@@ -196,13 +196,13 @@
           <horizontal>
             <samples>120</samples>
             <resolution>1.000000</resolution>
-            <min_angle>-3.14159</min_angle>
-            <max_angle>3.14159</max_angle>
+            <min_angle>-2.3</min_angle>
+            <max_angle>2.3</max_angle>
           </horizontal>
         </scan>
         <range>
           <min>0.3</min>
-          <max>15.0</max>
+          <max>20.0</max>
           <resolution>0.015</resolution>
         </range>
         <noise>
@@ -217,6 +217,62 @@
         </ros>
         <output_type>sensor_msgs/LaserScan</output_type>
         <frame_name>lidar_link</frame_name>
+      </plugin>
+    </sensor>
+  </link>
+
+
+  <!-- ********************** CAMERA ********************************** -->
+   <!-- Optical frame link, typically used for aligning the camera's frame in ROS -->
+  <link name="camera_link_optical">
+    <!-- No visual or collision geometry is necessary unless specifically desired -->
+  </link>
+
+  <!-- Joint connecting the camera link to the base_link or wherever it's attached -->
+  <joint name="camera_joint" type="fixed">
+    <parent>base_link</parent> <!-- Adjust as necessary to the correct parent link -->
+    <child>camera_link</child>
+    <pose frame=''>30 0 0.25 0 0 0</pose> <!-- Position and orientation relative to the parent link -->
+  </joint>
+
+  <!-- Joint for the optical frame, aligning it as needed for ROS compatibility -->
+  <joint name="camera_optical_joint" type="fixed">
+    <parent>camera_link</parent>
+    <child>camera_link_optical</child>
+    <pose>0 0 0 -1.5707 0 -1.5707</pose> <!-- Adjust the pose for correct optical alignment -->
+  </joint>
+
+  <!-- Camera sensor definition within the camera_link -->
+  <link name="camera_link">
+    <sensor name="rgb_cam" type="camera">
+      <pose frame=''>1 0 0.6 0 0 0</pose> <!-- Pose relative to the link it's attached to -->
+      <camera>
+        <horizontal_fov>1.089</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>480</height>
+        </image>
+        <clip>
+          <near>0.05</near>
+          <far>40</far>
+        </clip>
+      </camera>
+      <update_rate>10.0</update_rate>
+      <visualize>true</visualize>
+      <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+        <always_on>true</always_on>
+        <update_rate>0.0</update_rate>
+        <cameraName>camera</cameraName>
+        <frameName>camera_link_optical</frameName>
+        <imageTopicName>image_raw</imageTopicName>
+        <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+        <hackBaseline>0.07</hackBaseline>
+        <distortionK1>0.0</distortionK1>
+        <distortionK2>0.0</distortionK2>
+        <distortionK3>0.0</distortionK3>
+        <distortionT1>0.0</distortionT1>
+        <distortionT2>0.0</distortionT2>
+        <!-- Additional plugin parameters as needed -->
       </plugin>
     </sensor>
   </link>
@@ -276,10 +332,9 @@
     
     <collision name="drivewhl_l_collision">
       <geometry>
-        <cylinder>
+        <sphere>
           <radius>0.2</radius>
-          <length>0.2</length>
-        </cylinder>
+        </sphere>
       </geometry>
     </collision>
 
@@ -298,10 +353,9 @@
     
     <collision name="drivewhl_r_collision">
       <geometry>
-        <cylinder>
+        <sphere>
           <radius>0.2</radius>
-          <length>0.2</length>
-        </cylinder>
+        </sphere>
       </geometry>
     </collision>
 
@@ -320,10 +374,9 @@
     
     <collision name="drivewhl_fr_collision">
       <geometry>
-        <cylinder>
+        <sphere>
           <radius>0.2</radius>
-          <length>0.2</length>
-        </cylinder>
+        </sphere>
       </geometry>
     </collision>
 
@@ -342,10 +395,9 @@
     
     <collision name="drivewhl_fl_collision">
       <geometry>
-        <cylinder>
+        <sphere>
           <radius>0.2</radius>
-          <length>0.2</length>
-        </cylinder>
+        </sphere>
       </geometry>
     </collision>
 
@@ -359,6 +411,8 @@
     </visual>
   </link>
 
+
+  <!-- ******************* FORK *********************** -->
 
   <link name='fork'>
       <pose relative_to='base_to_fork'>0 0 0 0 -0 0</pose>
@@ -411,6 +465,15 @@
         </dynamics>
       </axis>
     </joint>
+
+   <plugin name="gazebo_ros2_control" filename="libgazebo_ros2_control.so">
+    <ros2_control_plugin>gazebo_ros2_control/GazeboSystem</ros2_control_plugin>
+    <robot_namespace>/</robot_namespace>
+    <control_period>0.001</control_period>
+    <parameter_file>$(find basic_mobile_robot3)/config/ros2_control_config.yaml</parameter_file>
+    <robot_sim_type>gazebo_ros2_control/GazeboSystem</robot_sim_type>
+  </plugin>
+
 
   <!-- *********************** CASTER WHEEL ******************************  -->
   <!-- <link name='front_caster'>

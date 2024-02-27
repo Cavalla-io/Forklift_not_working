@@ -1,0 +1,49 @@
+# Controller Configuration
+joint_state_broadcaster:
+  type: joint_state_broadcaster/JointStateBroadcaster
+
+prismatic_joint_controller:
+  type: position_controllers/JointPositionController
+  joint: base_to_fork
+
+# Example transmission interface for the prismatic joint
+transmissions:
+  - name: base_to_fork_trans
+    type: simple_transmission
+    joint_name: base_to_fork
+    actuator_name: base_to_fork_motor
+    mechanical_reduction: 1.0
+
+hardware_interfaces:
+  joints:
+    - name: base_to_fork
+      command_interfaces:
+        - name: position
+      state_interfaces:
+        - name: position
+        - name: velocity
+        - name: effort
+  actuators:
+    - name: base_to_fork_motor
+      command_interfaces:
+        - name: position
+      state_interfaces:
+        - name: position
+        - name: velocity
+        - name: effort
+
+# This part configures ros2_control hardware interface for your robot
+robot_hardware:
+  joints:
+    - name: base_to_fork
+      type: position
+  transmission:
+    - name: base_to_fork_trans
+      type: simple_transmission
+      joint: base_to_fork
+      actuator: base_to_fork_motor
+      mechanical_reduction: 1.0
+  actuators:
+    - name: base_to_fork_motor
+      hardware_interfaces:
+        - position

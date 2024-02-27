@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>basic_mobile_robot</name>
+  <name>basic_mobile_robot3</name>
   <version>3.0.0</version>
   <description>A basic mobile robot that uses the ROS 2 Navigation Stack Nav2</description>
   <maintainer email="automaticaddison@automaticaddison.todo">automaticaddison</maintainer>
@@ -11,6 +11,8 @@
   <exec_depend>joint_state_publisher</exec_depend>
   <exec_depend>robot_localization</exec_depend>
   <exec_depend>robot_state_publisher</exec_depend>
+  <depend>ros2_control</depend>
+  <depend>ros2_controllers</depend>
   <exec_depend>rviz</exec_depend>
   <exec_depend>xacro</exec_depend>
 

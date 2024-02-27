@@ -5,7 +5,7 @@
 
 import os
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, ExecuteProcess
 from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, LaunchConfiguration, PythonExpression
@@ -16,7 +16,8 @@ def generate_launch_description():
 
   # Set the path to different files and folders.
   pkg_gazebo_ros = FindPackageShare(package='gazebo_ros').find('gazebo_ros')   
-  pkg_share = FindPackageShare(package='basic_mobile_robot').find('basic_mobile_robot')
+  pkg_share = FindPackageShare(package='basic_mobile_robot3').find('basic_mobile_robot3')
+  pkg_forklift_recognition = FindPackageShare(package='forklift_recognition').find('forklift_recognition')
   default_launch_dir = os.path.join(pkg_share, 'launch')
   default_model_path = os.path.join(pkg_share, 'models/basic_mobile_bot_v2.urdf')
   robot_localization_file_path = os.path.join(pkg_share, 'config/ekf.yaml') 
@@ -30,8 +31,10 @@ def generate_launch_description():
   nav2_params_path = os.path.join(pkg_share, 'params', 'nav2_params.yaml')
   nav2_bt_path = FindPackageShare(package='nav2_bt_navigator').find('nav2_bt_navigator')
   behavior_tree_xml_path = os.path.join(nav2_bt_path, 'behavior_trees', 'navigate_w_replanning_and_recovery.xml')
+
   
   # Launch configuration variables specific to simulation
+  gui = LaunchConfiguration('gui')
   autostart = LaunchConfiguration('autostart')
   default_bt_xml_filename = LaunchConfiguration('default_bt_xml_filename')
   headless = LaunchConfiguration('headless')
@@ -62,6 +65,7 @@ def generate_launch_description():
     name='namespace',
     default_value='',
     description='Top-level namespace')
+  
 
   declare_use_namespace_cmd = DeclareLaunchArgument(
     name='use_namespace',
@@ -112,6 +116,11 @@ def generate_launch_description():
     name='use_robot_state_pub',
     default_value='True',
     description='Whether to start the robot state publisher')
+  
+  declare_use_joint_state_publisher_cmd = DeclareLaunchArgument(
+    name='gui',
+    default_value='True',
+    description='Flag to enable joint_state_publisher_gui')
 
   declare_use_rviz_cmd = DeclareLaunchArgument(
     name='use_rviz',
@@ -135,11 +144,55 @@ def generate_launch_description():
    
   # Specify the actions
 
+  # Commands to load and start the prismatic joint controller
+  load_and_start_prismatic_joint_controller = ExecuteProcess(
+      cmd=[
+          'bash', '-c', 
+          'sleep 5; '  # Give time for the controller_manager to start
+          'ros2 control load_configure_controller prismatic_joint_controller; '
+          'ros2 control switch_controllers --start-controllers prismatic_joint_controller'
+      ],
+      output='screen',
+  )
+
+  # Publish the joint state values for the non-fixed joints in the URDF file.
+  start_joint_state_publisher_cmd = Node(
+    condition=UnlessCondition(gui),
+    package='joint_state_publisher',
+    executable='joint_state_publisher',
+    name='joint_state_publisher',
+    parameters=[{'use_sim_time': use_sim_time}])
+
+  # A GUI to manipulate the joint state values
+  start_joint_state_publisher_gui_node = Node(
+    condition=IfCondition(gui),
+    package='joint_state_publisher_gui',
+    executable='joint_state_publisher_gui',
+    name='joint_state_publisher_gui',
+    parameters=[{'use_sim_time': use_sim_time}])
+  
+  
+  # # Start the Laser Scan Filter Node
+  # start_scan_filter_node = Node(
+  #   package='basic_mobile_robot3',
+  #   executable='scan_filter.py',
+  #   name='scan_filter_node',
+  #   output='screen',
+  #   parameters=[{'use_sim_time': use_sim_time}],
+  #   remappings=[('/scan', 'scan'), ('/filtered_scan', 'filtered_scan')])
+
   # Start Gazebo server
   start_gazebo_server_cmd = IncludeLaunchDescription(
     PythonLaunchDescriptionSource(os.path.join(pkg_gazebo_ros, 'launch', 'gzserver.launch.py')),
     condition=IfCondition(use_simulator),
     launch_arguments={'world': world}.items())
+  
+  # Start yolov8 object detection
+  spawn_yolo = IncludeLaunchDescription(
+    PythonLaunchDescriptionSource(
+        os.path.join(pkg_forklift_recognition, 'launch', 'launch_yolov8.launch.py'),
+    ),
+  )
 
   # Start Gazebo client    
   start_gazebo_client_cmd = IncludeLaunchDescription(
@@ -201,6 +254,7 @@ def generate_launch_description():
   ld.add_action(declare_rviz_config_file_cmd)
   ld.add_action(declare_simulator_cmd)
   ld.add_action(declare_slam_cmd)
+  ld.add_action(declare_use_joint_state_publisher_cmd)
   ld.add_action(declare_use_robot_state_pub_cmd)  
   ld.add_action(declare_use_rviz_cmd) 
   ld.add_action(declare_use_sim_time_cmd)
@@ -208,8 +262,13 @@ def generate_launch_description():
   ld.add_action(declare_world_cmd)
 
   # Add any actions
+  # ld.add_action(start_scan_filter_node)
+  ld.add_action(load_and_start_prismatic_joint_controller)
+  ld.add_action(spawn_yolo)
   ld.add_action(start_gazebo_server_cmd)
   ld.add_action(start_gazebo_client_cmd)
+  ld.add_action(start_joint_state_publisher_cmd)
+  ld.add_action(start_joint_state_publisher_gui_node)
   ld.add_action(start_robot_localization_cmd)
   ld.add_action(start_robot_state_publisher_cmd)
   ld.add_action(start_rviz_cmd)
