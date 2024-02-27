@@ -16,3 +16,6 @@ dependencies are:
 
 Folders to ignore:
  forklift_control, forklift_description, and forklift_gazebo: leftover from a scavenged github repo
+
+## To launch the sim
+Run `ros2 launch basic_mobile_robot3 basic_mobile_bot_v5.launch.py slam:=True`
